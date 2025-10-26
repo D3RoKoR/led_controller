@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import '../led_service.dart';
+import '../services/led_service.dart';
 
 class BluetoothLedService implements LedService {
   Color _color = Colors.red;
