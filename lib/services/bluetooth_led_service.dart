@@ -57,6 +57,7 @@ class BluetoothLedService implements LedService {
       List<int> data = [r, g, b];
       try {
         await _characteristic!.write(data, withoutResponse: true);
+        print("Bluetooth: Sent $data");
       } catch (e) {
         print("Bluetooth write error: $e");
       }

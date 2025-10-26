@@ -4,9 +4,8 @@ import 'services/bluetooth_led_service.dart';
 import 'services/led_service.dart';
 
 void main() {
-  runApp(MyApp(
-    ledService: BluetoothLedService(deviceName: "LED_LAMP_01"),
-  ));
+  final LedService ledService = BluetoothLedService(deviceName: "LED_LAMP_01");
+  runApp(MyApp(ledService: ledService));
 }
 
 class MyApp extends StatelessWidget {

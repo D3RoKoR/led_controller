@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../services/led_service.dart';
+import '../services/bluetooth_led_service.dart';
 
 class HomePage extends StatefulWidget {
   final LedService ledService;
@@ -57,10 +58,12 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await (widget.ledService as BluetoothLedService).connect();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Connected to LED device!')),
-                );
+                if (widget.ledService is BluetoothLedService) {
+                  await (widget.ledService as BluetoothLedService).connect();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Connected to LED device!')),
+                  );
+                }
               },
               child: const Text('Connect to LED'),
             ),
