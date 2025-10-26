@@ -11,10 +11,10 @@ workflows:
         script: |
           flutter pub get
 
-      - name: Build iOS app (no code signing)
+      - name: Build iOS app (no code signing, Debug)
         script: |
-          # Сборка для generic iOS device без подписи
-          flutter build ios --debug --simulator
+          # Сборка Debug для generic iOS device без подписи
+          flutter build ios --debug --no-codesign
 
       - name: Prepare Payload for AltStore
         script: |
