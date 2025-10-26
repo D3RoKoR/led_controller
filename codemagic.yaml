@@ -1,0 +1,30 @@
+workflows:
+  ios-altstore:
+    name: Build iOS for AltStore
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+
+      - name: Build iOS app (no code signing)
+        script: |
+          flutter build ios --no-codesign --release
+
+      - name: Prepare Payload for AltStore
+        script: |
+          # Создаем папку Payload
+          mkdir -p build/ios/AltStore/Payload
+          # Копируем Runner.app внутрь
+          cp -R build/ios/iphoneos/Runner.app build/ios/AltStore/Payload/
+          # Переходим в папку AltStore
+          cd build/ios/AltStore
+          # Создаем .ipa для AltStore
+          zip -r led_controller.ipa Payload
+
+    artifacts:
+      - build/ios/AltStore/led_controller.ipa
