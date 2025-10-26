@@ -14,7 +14,7 @@ workflows:
       - name: Build iOS app (no code signing)
         script: |
           # Собираем для generic device без подписи
-          flutter build ios --no-codesign --release --simulator=false
+          flutter build ios --no-codesign --release
 
       - name: Prepare Payload for AltStore
         script: |
