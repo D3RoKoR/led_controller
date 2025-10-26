@@ -52,15 +52,19 @@ class _HomePageState extends State<HomePage> {
     _devices.clear();
     setState(() => _isScanning = true);
 
-    _scanSubscription = FlutterBluePlus.instance
-        .scan(timeout: const Duration(seconds: 5))
-        .listen((scanResult) {
-      setState(() {
-        _devices[scanResult.device.id] = scanResult;
-      });
-    }, onDone: () {
-      setState(() => _isScanning = false);
-    });
+    // Используем новую версию API flutter_blue_plus
+    _scanSubscription = FlutterBluePlus.instance.scan(timeout: const Duration(seconds: 5)).listen(
+      (scanResult) {
+        setState(() {
+          _devices[scanResult.device.id] = scanResult;
+        });
+      },
+      onDone: () => setState(() => _isScanning = false),
+      onError: (e) {
+        debugPrint('Scan error: $e');
+        setState(() => _isScanning = false);
+      },
+    );
   }
 
   void _stopScan() {
