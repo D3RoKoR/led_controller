@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -30,10 +32,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final FlutterBluePlus _ble = FlutterBluePlus.instance;
-  Map<DeviceIdentifier, ScanResult> _devices = {};
+  final Map<DeviceIdentifier, ScanResult> _devices = {};
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _writeChar;
+  StreamSubscription<ScanResult>? _scanSubscription;
+  bool _isScanning = false;
 
   int red = 255;
   int green = 0;
@@ -45,23 +48,31 @@ class _HomePageState extends State<HomePage> {
     _startScan();
   }
 
-  Future<void> _startScan() async {
+  void _startScan() {
     _devices.clear();
-    setState(() {});
-    await _ble.startScan(timeout: const Duration(seconds: 5));
-    _ble.scanResults.listen((results) {
-      for (var r in results) {
-        _devices[r.device.id] = r;
-      }
-      setState(() {});
+    setState(() => _isScanning = true);
+
+    _scanSubscription = FlutterBluePlus.instance
+        .scan(timeout: const Duration(seconds: 5))
+        .listen((scanResult) {
+      setState(() {
+        _devices[scanResult.device.id] = scanResult;
+      });
+    }, onDone: () {
+      setState(() => _isScanning = false);
     });
+  }
+
+  void _stopScan() {
+    _scanSubscription?.cancel();
+    setState(() => _isScanning = false);
   }
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     try {
       await device.connect(autoConnect: false);
     } catch (e) {
-      debugPrint('Ошибка подключения: $e');
+      debugPrint('Connection error: $e');
     }
 
     List<BluetoothService> services = await device.discoverServices();
@@ -91,12 +102,11 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _sendColor() async {
     if (_writeChar == null) return;
-
     final payload = Uint8List.fromList([0x56, red, green, blue, 0x00, 0xF0, 0xAA]);
     try {
       await _writeChar!.write(payload, withoutResponse: true);
     } catch (e) {
-      debugPrint('Ошибка при отправке цвета: $e');
+      debugPrint('Error sending color: $e');
     }
   }
 
@@ -122,6 +132,65 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildScanList() {
+    if (_devices.isEmpty) {
+      return const Center(child: Text('Scanning BLE devices...'));
+    }
+
+    return ListView(
+      children: _devices.values.map((r) {
+        final device = r.device;
+        final name = device.name.isNotEmpty ? device.name : device.id.id;
+        return ListTile(
+          title: Text(name),
+          subtitle: Text('RSSI: ${r.rssi}'),
+          trailing: const Icon(Icons.bluetooth),
+          onTap: () => _connectToDevice(device),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildControlPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Text(
+            'Connected: ${_connectedDevice!.name.isNotEmpty ? _connectedDevice!.name : _connectedDevice!.id.id}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          _buildSlider('R', red, (v) {
+            setState(() => red = v);
+            _sendColor();
+          }),
+          _buildSlider('G', green, (v) {
+            setState(() => green = v);
+            _sendColor();
+          }),
+          _buildSlider('B', blue, (v) {
+            setState(() => blue = v);
+            _sendColor();
+          }),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.lightbulb),
+            label: const Text('Apply Color'),
+            onPressed: _sendColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scanSubscription?.cancel();
+    _connectedDevice?.disconnect();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,58 +211,6 @@ class _HomePageState extends State<HomePage> {
               child: const Icon(Icons.refresh),
             )
           : null,
-    );
-  }
-
-  Widget _buildScanList() {
-    if (_devices.isEmpty) {
-      return const Center(child: Text('Сканирование BLE-устройств...'));
-    }
-
-    return ListView(
-      children: _devices.values.map((r) {
-        final device = r.device;
-        final name = device.name.isNotEmpty ? device.name : device.id.id;
-        return ListTile(
-          title: Text(name),
-          subtitle: Text('RSSI: ${r.rssi}'),
-          trailing: const Icon(Icons.bluetooth),
-          onTap: () => _connectToDevice(device),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildControlPanel() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Text(
-            'Подключено: ${_connectedDevice!.name.isNotEmpty ? _connectedDevice!.name : _connectedDevice!.id.id}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildSlider('R', red, (v) {
-            setState(() => red = v);
-            _sendColor();
-          }),
-          _buildSlider('G', green, (v) {
-            setState(() => green = v);
-            _sendColor();
-          }),
-          _buildSlider('B', blue, (v) {
-            setState(() => blue = v);
-            _sendColor();
-          }),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.lightbulb),
-            label: const Text('Применить цвет'),
-            onPressed: _sendColor,
-          ),
-        ],
-      ),
     );
   }
 }
