@@ -14,7 +14,7 @@ workflows:
       - name: Build iOS app for Simulator (Debug)
         script: |
           # Сборка Debug для iOS Simulator (не требует подписи)
-          flutter build ios --no-codesign --release
+          flutter build ios --release
 
       - name: Prepare Payload for AltStore
         script: |
