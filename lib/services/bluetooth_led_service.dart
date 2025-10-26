@@ -38,7 +38,11 @@ class BluetoothLedService implements LedService {
       );
 
       final services = await _device!.discoverServices();
-      _characteristic = services.first.characteristics.first;
+      if (services.isNotEmpty) {
+        _characteristic = services.first.characteristics.first;
+      } else {
+        print("No services found on device");
+      }
     } else {
       print("Bluetooth device not found: $deviceName");
     }
