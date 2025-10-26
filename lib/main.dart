@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -31,7 +32,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final FlutterBluePlus _ble = FlutterBluePlus.instance;
   final Map<DeviceIdentifier, ScanResult> _devices = {};
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _writeChar;
@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   int green = 0;
   int blue = 0;
   bool _isScanning = false;
+  StreamSubscription<ScanResult>? _scanSubscription;
 
   @override
   void initState() {
@@ -47,18 +48,24 @@ class _HomePageState extends State<HomePage> {
     _startScan();
   }
 
-  Future<void> _startScan() async {
+  void _startScan() {
     _devices.clear();
     setState(() => _isScanning = true);
 
-    await _ble.startScan(timeout: const Duration(seconds: 5));
+    _scanSubscription = FlutterBluePlus.instance
+        .scan(timeout: const Duration(seconds: 5))
+        .listen((scanResult) {
+      setState(() {
+        _devices[scanResult.device.id] = scanResult;
+      });
+    }, onDone: () {
+      setState(() => _isScanning = false);
+    });
+  }
 
-    _ble.scanResults.listen((results) {
-      for (var r in results) {
-        _devices[r.device.id] = r;
-      }
-      setState(() {});
-    }).onDone(() => setState(() => _isScanning = false));
+  void _stopScan() {
+    _scanSubscription?.cancel();
+    setState(() => _isScanning = false);
   }
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
@@ -179,7 +186,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _ble.stopScan();
+    _scanSubscription?.cancel();
+    _connectedDevice?.disconnect();
     super.dispose();
   }
 
