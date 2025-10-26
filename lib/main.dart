@@ -1,197 +1,82 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 void main() {
-  runApp(const LedControllerApp());
+  runApp(const MyApp());
 }
 
-class LedControllerApp extends StatelessWidget {
-  const LedControllerApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'LED Controller',
-      debugShowCheckedModeBanner: false,
+      title: 'Flutter BLE Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
-      home: const HomePage(),
+      home: const MyHomePage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  final Map<DeviceIdentifier, ScanResult> _devices = {};
-  BluetoothDevice? _connectedDevice;
-  BluetoothCharacteristic? _writeChar;
-  StreamSubscription<ScanResult>? _scanSubscription;
+class _MyHomePageState extends State<MyHomePage> {
+  final FlutterBluePlus _flutterBlue = FlutterBluePlus();
+  late StreamSubscription<List<ScanResult>> _scanSubscription;
   bool _isScanning = false;
-
-  int red = 255;
-  int green = 0;
-  int blue = 0;
+  List<ScanResult> _scanResults = [];
 
   @override
   void initState() {
     super.initState();
-    _startScan();
   }
 
   void _startScan() {
-    _devices.clear();
-    setState(() => _isScanning = true);
+    _scanResults.clear();
+    setState(() {
+      _isScanning = true;
+    });
 
-    // Используем новую версию API flutter_blue_plus
-    _scanSubscription = FlutterBluePlus.instance.scan(timeout: const Duration(seconds: 5)).listen(
-      (scanResult) {
+    _scanSubscription = _flutterBlue.startScan(
+      timeout: const Duration(seconds: 5),
+    ).listen(
+      (scanResults) {
         setState(() {
-          _devices[scanResult.device.id] = scanResult;
+          _scanResults = scanResults;
         });
       },
-      onDone: () => setState(() => _isScanning = false),
+      onDone: () {
+        setState(() {
+          _isScanning = false;
+        });
+      },
       onError: (e) {
-        debugPrint('Scan error: $e');
-        setState(() => _isScanning = false);
+        setState(() {
+          _isScanning = false;
+        });
+        print('Scan error: $e');
       },
     );
   }
 
   void _stopScan() {
-    _scanSubscription?.cancel();
-    setState(() => _isScanning = false);
-  }
-
-  Future<void> _connectToDevice(BluetoothDevice device) async {
-    try {
-      await device.connect(autoConnect: false);
-    } catch (e) {
-      debugPrint('Connection error: $e');
-    }
-
-    List<BluetoothService> services = await device.discoverServices();
-    for (var service in services) {
-      for (var characteristic in service.characteristics) {
-        if (characteristic.properties.write ||
-            characteristic.properties.writeWithoutResponse) {
-          _writeChar = characteristic;
-          break;
-        }
-      }
-      if (_writeChar != null) break;
-    }
-
+    _scanSubscription.cancel();
     setState(() {
-      _connectedDevice = device;
+      _isScanning = false;
     });
-  }
-
-  Future<void> _disconnect() async {
-    await _connectedDevice?.disconnect();
-    setState(() {
-      _connectedDevice = null;
-      _writeChar = null;
-    });
-  }
-
-  Future<void> _sendColor() async {
-    if (_writeChar == null) return;
-    final payload = Uint8List.fromList([0x56, red, green, blue, 0x00, 0xF0, 0xAA]);
-    try {
-      await _writeChar!.write(payload, withoutResponse: true);
-    } catch (e) {
-      debugPrint('Error sending color: $e');
-    }
-  }
-
-  Widget _buildSlider(String label, int value, ValueChanged<int> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$label: $value', style: const TextStyle(fontWeight: FontWeight.bold)),
-        Slider(
-          value: value.toDouble(),
-          min: 0,
-          max: 255,
-          divisions: 255,
-          label: '$value',
-          activeColor: label == 'R'
-              ? Colors.red
-              : label == 'G'
-                  ? Colors.green
-                  : Colors.blue,
-          onChanged: (v) => onChanged(v.toInt()),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScanList() {
-    if (_devices.isEmpty) {
-      return const Center(child: Text('Scanning BLE devices...'));
-    }
-
-    return ListView(
-      children: _devices.values.map((r) {
-        final device = r.device;
-        final name = device.name.isNotEmpty ? device.name : device.id.id;
-        return ListTile(
-          title: Text(name),
-          subtitle: Text('RSSI: ${r.rssi}'),
-          trailing: const Icon(Icons.bluetooth),
-          onTap: () => _connectToDevice(device),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildControlPanel() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Text(
-            'Connected: ${_connectedDevice!.name.isNotEmpty ? _connectedDevice!.name : _connectedDevice!.id.id}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildSlider('R', red, (v) {
-            setState(() => red = v);
-            _sendColor();
-          }),
-          _buildSlider('G', green, (v) {
-            setState(() => green = v);
-            _sendColor();
-          }),
-          _buildSlider('B', blue, (v) {
-            setState(() => blue = v);
-            _sendColor();
-          }),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.lightbulb),
-            label: const Text('Apply Color'),
-            onPressed: _sendColor,
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   void dispose() {
-    _scanSubscription?.cancel();
-    _connectedDevice?.disconnect();
+    _scanSubscription.cancel();
     super.dispose();
   }
 
@@ -199,22 +84,33 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LED Controller'),
-        actions: [
-          if (_connectedDevice != null)
-            IconButton(
-              icon: const Icon(Icons.power_settings_new),
-              onPressed: _disconnect,
+        title: const Text('Flutter BLE Demo'),
+      ),
+      body: Column(
+        children: [
+          ElevatedButton(
+            onPressed: _isScanning ? _stopScan : _startScan,
+            child: Text(_isScanning ? 'Stop Scan' : 'Start Scan'),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _scanResults.length,
+              itemBuilder: (context, index) {
+                final result = _scanResults[index];
+                return ListTile(
+                  title: Text(result.device.name.isEmpty
+                      ? result.device.id.id
+                      : result.device.name),
+                  subtitle: Text('RSSI: ${result.rssi}'),
+                  onTap: () {
+                    // Handle device tap
+                  },
+                );
+              },
             ),
+          ),
         ],
       ),
-      body: _connectedDevice == null ? _buildScanList() : _buildControlPanel(),
-      floatingActionButton: _connectedDevice == null
-          ? FloatingActionButton(
-              onPressed: _startScan,
-              child: const Icon(Icons.refresh),
-            )
-          : null,
     );
   }
 }
