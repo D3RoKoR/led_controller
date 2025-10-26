@@ -3,7 +3,6 @@
 "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Основные настройки Flutter -->
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
@@ -24,8 +23,6 @@
     <true/>
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
-    <key>UIMainStoryboardFile</key>
-    <string>Main</string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arm64</string>
@@ -44,19 +41,18 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
-    <!-- Разрешения для Bluetooth -->
+    <!-- Bluetooth permissions -->
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>Приложение использует Bluetooth для управления светодиодной лентой</string>
     <key>NSBluetoothPeripheralUsageDescription</key>
     <string>Приложение использует Bluetooth для управления светодиодной лентой</string>
 
-    <!-- Режим работы в фоне, если нужен -->
+    <!-- Background mode -->
     <key>UIBackgroundModes</key>
     <array>
         <string>bluetooth-central</string>
     </array>
 
-    <!-- Поддержка Dark Mode -->
     <key>UIUserInterfaceStyle</key>
     <string>Automatic</string>
 </dict>

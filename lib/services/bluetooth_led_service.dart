@@ -19,20 +19,24 @@ class BluetoothLedService implements LedService {
   double get brightness => _brightness;
 
   Future<void> connect() async {
-    FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
+    final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
 
-    final scanSubscription = flutterBlue.scan(timeout: const Duration(seconds: 5)).listen((scanResult) {
+    // Сканируем устройства
+    await for (final scanResult in flutterBlue.scan(timeout: const Duration(seconds: 5))) {
       if (scanResult.device.name == deviceName) {
         _device = scanResult.device;
+        break;
       }
-    });
-
-    await scanSubscription.asFuture();
-    await scanSubscription.cancel();
+    }
 
     if (_device != null) {
-      await _device!.connect();
-      List<BluetoothService> services = await _device!.discoverServices();
+      // Подключаемся с обязательным параметром license
+      await _device!.connect(
+          autoConnect: false, 
+          timeout: const Duration(seconds: 5), 
+          license: "MIT");
+
+      final services = await _device!.discoverServices();
       _characteristic = services.first.characteristics.first;
     }
   }
@@ -55,6 +59,7 @@ class BluetoothLedService implements LedService {
       int g = (_color.green * _brightness).round();
       int b = (_color.blue * _brightness).round();
       List<int> data = [r, g, b];
+
       try {
         await _characteristic!.write(data, withoutResponse: true);
         print("Bluetooth: Sent $data");
