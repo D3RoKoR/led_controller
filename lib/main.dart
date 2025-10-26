@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
       onDone: () => setState(() => _isScanning = false),
     );
 
-    // Остановка сканирования через 5 секунд
+    // Остановка сканирования через 5 секунд вручную
     Future.delayed(const Duration(seconds: 5), () {
       _stopScan();
     });
