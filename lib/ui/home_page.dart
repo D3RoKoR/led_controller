@@ -1,71 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import '../services/led_service.dart';
 import '../services/bluetooth_led_service.dart';
 
 class HomePage extends StatefulWidget {
-  final LedService ledService;
-  const HomePage({super.key, required this.ledService});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  Color selectedColor = Colors.red;
-  double brightness = 1.0;
+  final BluetoothLedService _ledService = BluetoothLedService();
 
-  @override
-  void initState() {
-    super.initState();
-    selectedColor = widget.ledService.currentColor;
-    brightness = widget.ledService.brightness;
+  int red = 255;
+  int green = 0;
+  int blue = 0;
+
+  bool _connected = false;
+
+  Future<void> _connect() async {
+    await _ledService.connect();
+    setState(() {
+      _connected = true;
+    });
   }
 
-  void _changeColor(Color color) {
-    setState(() => selectedColor = color);
-    widget.ledService.setColor(color);
+  Future<void> _disconnect() async {
+    await _ledService.disconnect();
+    setState(() {
+      _connected = false;
+    });
   }
 
-  void _changeBrightness(double value) {
-    setState(() => brightness = value);
-    widget.ledService.setBrightness(value);
+  Widget _buildSlider(String label, int value, ValueChanged<int> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$label: $value', style: const TextStyle(fontWeight: FontWeight.bold)),
+        Slider(
+          value: value.toDouble(),
+          min: 0,
+          max: 255,
+          divisions: 255,
+          label: '$value',
+          activeColor: label == 'R'
+              ? Colors.red
+              : label == 'G'
+                  ? Colors.green
+                  : Colors.blue,
+          onChanged: (v) => onChanged(v.toInt()),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('LED Controller')),
+      appBar: AppBar(
+        title: const Text('LED Controller'),
+        actions: [
+          if (_connected)
+            IconButton(
+              icon: const Icon(Icons.power_settings_new),
+              onPressed: _disconnect,
+            ),
+        ],
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            ColorPicker(
-              pickerColor: selectedColor,
-              onColorChanged: _changeColor,
-              showLabel: true,
-              pickerAreaHeightPercent: 0.6,
-            ),
-            const SizedBox(height: 20),
-            Text("Brightness: ${(brightness * 100).round()}%"),
-            Slider(
-              value: brightness,
-              min: 0.0,
-              max: 1.0,
-              divisions: 100,
-              onChanged: _changeBrightness,
-            ),
-            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                if (widget.ledService is BluetoothLedService) {
-                  await (widget.ledService as BluetoothLedService).connect();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Connected to LED device!')),
-                  );
-                }
+              onPressed: _connected ? null : _connect,
+              child: Text(_connected ? 'Connected' : 'Connect'),
+            ),
+            const SizedBox(height: 16),
+            _buildSlider('R', red, (v) {
+              setState(() => red = v);
+              _ledService.setColor(
+                Color.fromARGB(255, red, green, blue),
+              );
+            }),
+            _buildSlider('G', green, (v) {
+              setState(() => green = v);
+              _ledService.setColor(
+                Color.fromARGB(255, red, green, blue),
+              );
+            }),
+            _buildSlider('B', blue, (v) {
+              setState(() => blue = v);
+              _ledService.setColor(
+                Color.fromARGB(255, red, green, blue),
+              );
+            }),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.lightbulb),
+              label: const Text('Apply Color'),
+              onPressed: () {
+                _ledService.setColor(Color.fromARGB(255, red, green, blue));
               },
-              child: const Text('Connect to LED'),
             ),
           ],
         ),
