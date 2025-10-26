@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
       onDone: () => setState(() => _isScanning = false),
     );
 
-    // Остановка сканирования через 5 секунд вручную
+    // Остановка сканирования через 5 секунд
     Future.delayed(const Duration(seconds: 5), () {
       _stopScan();
     });
@@ -78,30 +78,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
-  try {
-    // Исправлено: передаем объект License.empty() вместо строки
-    await device.connect(autoConnect: false, license: License.empty());
-  } catch (e) {
-    debugPrint('Connection error: $e');
-  }
-
-  List<BluetoothService> services = await device.discoverServices();
-  for (var service in services) {
-    for (var characteristic in service.characteristics) {
-      if (characteristic.properties.write ||
-          characteristic.properties.writeWithoutResponse) {
-        _writeChar = characteristic;
-        break;
-      }
+    try {
+      // Используем License.none для flutter_blue_plus 2.0.0
+      await device.connect(autoConnect: false, license: License.none);
+    } catch (e) {
+      debugPrint('Connection error: $e');
     }
-    if (_writeChar != null) break;
+
+    List<BluetoothService> services = await device.discoverServices();
+    for (var service in services) {
+      for (var characteristic in service.characteristics) {
+        if (characteristic.properties.write ||
+            characteristic.properties.writeWithoutResponse) {
+          _writeChar = characteristic;
+          break;
+        }
+      }
+      if (_writeChar != null) break;
+    }
+
+    setState(() {
+      _connectedDevice = device;
+    });
   }
-
-  setState(() {
-    _connectedDevice = device;
-  });
-}
-
 
   Future<void> _disconnect() async {
     await _connectedDevice?.disconnect();
