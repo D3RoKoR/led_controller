@@ -34,7 +34,7 @@ class BluetoothLedService implements LedService {
       await _device!.connect(
           autoConnect: false, 
           timeout: const Duration(seconds: 5), 
-          license: "MIT");
+          license: License.free);
 
       final services = await _device!.discoverServices();
       _characteristic = services.first.characteristics.first;
