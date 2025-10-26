@@ -32,7 +32,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  StreamSubscription<List<ScanResult>>? _scanSubscription;
+  StreamSubscription<ScanResult>? _scanSubscription;
   bool _isScanning = false;
   Map<DeviceIdentifier, ScanResult> _devices = {};
 
@@ -53,19 +53,22 @@ class _HomePageState extends State<HomePage> {
     _devices.clear();
     setState(() => _isScanning = true);
 
-    _scanSubscription = FlutterBluePlus.scan(timeout: const Duration(seconds: 5)).listen(
-      (scanResults) {
-        for (var r in scanResults) {
-          _devices[r.device.id] = r;
-        }
+    _scanSubscription = FlutterBluePlus.scan().listen(
+      (result) {
+        _devices[result.device.id] = result;
         setState(() {});
       },
-      onDone: () => setState(() => _isScanning = false),
       onError: (e) {
         debugPrint('Scan error: $e');
         setState(() => _isScanning = false);
       },
+      onDone: () => setState(() => _isScanning = false),
     );
+
+    // Остановка сканирования через 5 секунд вручную
+    Future.delayed(const Duration(seconds: 5), () {
+      _stopScan();
+    });
   }
 
   void _stopScan() {
@@ -76,7 +79,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     try {
-      await device.connect(autoConnect: false);
+      await device.connect(autoConnect: false, license: "");
     } catch (e) {
       debugPrint('Connection error: $e');
     }
@@ -84,7 +87,8 @@ class _HomePageState extends State<HomePage> {
     List<BluetoothService> services = await device.discoverServices();
     for (var service in services) {
       for (var characteristic in service.characteristics) {
-        if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+        if (characteristic.properties.write ||
+            characteristic.properties.writeWithoutResponse) {
           _writeChar = characteristic;
           break;
         }
