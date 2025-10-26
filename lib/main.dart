@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     try {
-      await device.connect(autoConnect: false, license: License.bsd);
+      await device.connect(autoConnect: false, license: License.free);
     } catch (e) {
       debugPrint('Connection error: $e');
     }
