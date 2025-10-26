@@ -13,18 +13,13 @@ workflows:
 
       - name: Build iOS app (no code signing)
         script: |
-          # Собираем для generic device без подписи
           flutter build ios --no-codesign --release
 
       - name: Prepare Payload for AltStore
         script: |
-          # Создаем папку Payload
           mkdir -p build/ios/AltStore/Payload
-          # Копируем Runner.app внутрь
           cp -R build/ios/iphoneos/Runner.app build/ios/AltStore/Payload/
-          # Переходим в папку AltStore
           cd build/ios/AltStore
-          # Создаем .ipa для AltStore
           zip -r led_controller.ipa Payload
 
     artifacts:
