@@ -78,28 +78,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
-    try {
-      await device.connect(autoConnect: false, license: "");
-    } catch (e) {
-      debugPrint('Connection error: $e');
-    }
-
-    List<BluetoothService> services = await device.discoverServices();
-    for (var service in services) {
-      for (var characteristic in service.characteristics) {
-        if (characteristic.properties.write ||
-            characteristic.properties.writeWithoutResponse) {
-          _writeChar = characteristic;
-          break;
-        }
-      }
-      if (_writeChar != null) break;
-    }
-
-    setState(() {
-      _connectedDevice = device;
-    });
+  try {
+    // Исправлено: передаем объект License.empty() вместо строки
+    await device.connect(autoConnect: false, license: License.empty());
+  } catch (e) {
+    debugPrint('Connection error: $e');
   }
+
+  List<BluetoothService> services = await device.discoverServices();
+  for (var service in services) {
+    for (var characteristic in service.characteristics) {
+      if (characteristic.properties.write ||
+          characteristic.properties.writeWithoutResponse) {
+        _writeChar = characteristic;
+        break;
+      }
+    }
+    if (_writeChar != null) break;
+  }
+
+  setState(() {
+    _connectedDevice = device;
+  });
+}
+
 
   Future<void> _disconnect() async {
     await _connectedDevice?.disconnect();
