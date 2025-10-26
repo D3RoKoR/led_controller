@@ -79,8 +79,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     try {
-      // Используем License.none для flutter_blue_plus 2.0.0
-      await device.connect(autoConnect: false, license: License.none);
+      await device.connect(autoConnect: false);
     } catch (e) {
       debugPrint('Connection error: $e');
     }
