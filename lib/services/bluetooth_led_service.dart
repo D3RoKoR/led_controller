@@ -19,10 +19,10 @@ class BluetoothLedService implements LedService {
   double get brightness => _brightness;
 
   Future<void> connect() async {
-    final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
-
-    // Сканируем устройства
-    await for (final scanResult in flutterBlue.scan(timeout: const Duration(seconds: 5))) {
+    // Сканируем устройства напрямую через scanForDevices()
+    await for (final scanResult in FlutterBluePlus.instance.scanForDevices(
+      timeout: const Duration(seconds: 5),
+    )) {
       if (scanResult.device.name == deviceName) {
         _device = scanResult.device;
         break;
@@ -30,14 +30,17 @@ class BluetoothLedService implements LedService {
     }
 
     if (_device != null) {
-      // Подключаемся с обязательным параметром license
+      // Подключаемся с License.free
       await _device!.connect(
-          autoConnect: false, 
-          timeout: const Duration(seconds: 5), 
-          license: License.free);
+        autoConnect: false,
+        timeout: const Duration(seconds: 5),
+        license: License.free,
+      );
 
       final services = await _device!.discoverServices();
       _characteristic = services.first.characteristics.first;
+    } else {
+      print("Bluetooth device not found: $deviceName");
     }
   }
 
