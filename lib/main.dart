@@ -65,10 +65,8 @@ class _HomePageState extends State<HomePage> {
       onDone: () => setState(() => _isScanning = false),
     );
 
-    // Остановка сканирования через 5 секунд вручную
-    Future.delayed(const Duration(seconds: 5), () {
-      _stopScan();
-    });
+    // Остановка сканирования через 5 секунд
+    Future.delayed(const Duration(seconds: 5), _stopScan);
   }
 
   void _stopScan() {
@@ -79,7 +77,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _connectToDevice(BluetoothDevice device) async {
     try {
-      await device.connect(autoConnect: false);
+      await device.connect(autoConnect: false); // <- Параметр license больше не нужен
     } catch (e) {
       debugPrint('Connection error: $e');
     }
